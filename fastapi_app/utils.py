@@ -1,0 +1,70 @@
+import tensorflow as tf
+import segmentation_models as sm
+import numpy as np
+from PIL import Image
+
+
+# --- CONFIGURATION ---
+# IMPORTANT: Remplacez cette valeur par le nom du backbone de votre meilleur modèle !
+# Exemples: 'mobilenetv2', 'resnet34', 'efficientnetb0'
+FINAL_MODEL_BACKBONE = "mobilenetv2" # <--- À MODIFIER
+
+MODEL_PATH = "model/best_model_Phase2_Backbone_FPN_mobilenetv2.h5"
+IMG_HEIGHT = 256
+IMG_WIDTH = 512
+
+# --- MODEL LOADING ---
+def load_segmentation_model():
+    """
+    Charge le modèle de segmentation en mémoire.
+    Gère les objets personnalisés nécessaires pour la perte et les métriques.
+    """
+    # On ne compile pas le modèle pour l'inférence, c'est plus rapide.
+    # On doit quand même fournir les objets personnalisés pour que Keras puisse charger le modèle.
+    def combined_dice_focal_loss(y_true, y_pred):
+        dice_loss = sm.losses.DiceLoss()(y_true, y_pred)
+        focal_loss = sm.losses.CategoricalFocalLoss()(y_true, y_pred)
+        return dice_loss + (1 * focal_loss)
+
+    custom_objects = {
+        'combined_dice_focal_loss': combined_dice_focal_loss,
+        'iou_score': sm.metrics.IOUScore(),
+        'f1-score': sm.metrics.FScore()
+    }
+    model = tf.keras.models.load_model(MODEL_PATH, custom_objects=custom_objects, compile=False)
+    print(f"Modèle chargé depuis {MODEL_PATH}")
+    return model
+
+# --- PREPROCESSING ---
+def preprocess_image(image: Image.Image):
+    """
+    Prétraite une image PIL pour l'inférence du modèle.
+    1. Redimensionne l'image.
+    2. Applique le pré-traitement spécifique au backbone.
+    3. Ajoute une dimension de batch.
+    """
+    # Redimensionner l'image
+    image = image.resize((IMG_WIDTH, IMG_HEIGHT))
+    image_np = np.array(image)
+
+    # Obtenir la fonction de pré-traitement du backbone
+    preprocess_input = sm.get_preprocessing(FINAL_MODEL_BACKBONE)
+    
+    # Appliquer le pré-traitement
+    preprocessed_image = preprocess_input(image_np)
+    
+    # Ajouter la dimension du batch
+    input_tensor = np.expand_dims(preprocessed_image, axis=0)
+    
+    return input_tensor
+
+# --- POSTPROCESSING ---
+def postprocess_prediction(prediction_tensor):
+    """
+    Convertit la sortie brute du modèle (tensor) en un masque 2D.
+    """
+    # Appliquer argmax pour obtenir les ID de classe pour chaque pixel
+    mask = np.argmax(prediction_tensor[0], axis=-1)
+    
+    # Convertir en liste pour la sérialisation JSON
+    return mask.tolist()
