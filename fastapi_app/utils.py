@@ -5,13 +5,10 @@ from PIL import Image
 
 
 # --- CONFIGURATION ---
-# IMPORTANT: Remplacez cette valeur par le nom du backbone de votre meilleur modèle !
-# Exemples: 'mobilenetv2', 'resnet34', 'efficientnetb0'
-FINAL_MODEL_BACKBONE = "mobilenetv2" # <--- À MODIFIER
-
-MODEL_PATH = "model/best_model_Phase2_Backbone_FPN_mobilenetv2.h5"
-IMG_HEIGHT = 256
-IMG_WIDTH = 512
+FINAL_MODEL_BACKBONE = "efficientnetb0" 
+MODEL_PATH = "model/final_best_model.h5"
+IMG_HEIGHT = 288
+IMG_WIDTH = 528
 
 # --- MODEL LOADING ---
 def load_segmentation_model():
