@@ -28,13 +28,14 @@ def load_segmentation_model():
         'iou_score': sm.metrics.IOUScore(),
         'f1-score': sm.metrics.FScore()
     }
-    model = tf.keras.models.load_model(MODEL_PATH, custom_objects=custom_objects, compile=False)
+    model = tf.keras.models.load_model(MODEL_PATH, custom_objects=custom_objects)
     print(f"Modèle chargé depuis {MODEL_PATH}")
     return model
 
 # --- PREPROCESSING ---
 def preprocess_image(image: Image.Image):
     """
+
     Prétraite une image PIL pour l'inférence du modèle.
     1. Redimensionne l'image.
     2. Applique le pré-traitement spécifique au backbone.
